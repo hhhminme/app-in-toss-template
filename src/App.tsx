@@ -1,12 +1,7 @@
-import { Welcome } from './components/Welcome';
+import { TypingTest } from './components/TypingTest';
 
 function App() {
-  const handleGetStarted = () => {
-    console.log('시작하기 클릭!');
-    alert('앱인토스 개발을 시작해보세요! 🚀');
-  };
-
-  return <Welcome onGetStarted={handleGetStarted} />;
+  return <TypingTest />;
 }
 
 export default App;
