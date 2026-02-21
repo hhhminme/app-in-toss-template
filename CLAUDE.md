@@ -233,6 +233,8 @@ npm run dev                               # localhost:5173
 
 TTS 서버 API: `GET /api/tts/:text` → `audio/mpeg` (한글 1~10자)
 
+> **TTS 텍스트 가공 책임**: 프론트엔드의 `ttsApiClient.ts`는 단순 HTTP 클라이언트로, 텍스트 가공 없이 서버에 전달만 합니다. 음성 톤 조정을 위한 텍스트 가공(예: `!` 추가)은 TTS 서버(`key-speed-server`)의 책임입니다.
+
 ---
 
 ## 🚫 금지 사항
