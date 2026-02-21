@@ -2,18 +2,31 @@
 
 ## 프로젝트 개요
 
-이 프로젝트는 **Apps In Toss** 미니앱 개발을 위한 React + TypeScript + Vite 템플릿입니다.
+**타자 속도 측정기** — Apps In Toss 플랫폼에서 동작하는 한글 타이핑 속도 측정 게임입니다.
+
+> **전체 시스템 설계**는 [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
 
 ### 기술 스택
 
 - **프레임워크**: Apps In Toss Web Framework v1.11.1 (Granite)
-- **UI 라이브러리**: React 19
+- **UI 라이브러리**: React 18 + TDS Mobile v2.2.1
 - **빌드 도구**: Vite 7
-- **스타일링**: Tailwind CSS 3 + TDS (Toss Design System)
+- **스타일링**: Emotion (CSS-in-JS) + Tailwind CSS 3 + TDS
 - **타입 체크**: TypeScript 5.9
 - **테스팅**: Vitest + React Testing Library
 - **린팅**: ESLint 9 + Prettier
-- **패키지 관리자**: npm
+- **패키지 관리자**: npm (workspaces)
+
+### 시스템 구성
+
+이 프로젝트는 두 개의 독립된 저장소로 구성됩니다:
+
+| 저장소 | 역할 | 포트 |
+|--------|------|------|
+| `key-speed` (이 저장소) | 프론트엔드 미니앱 | 5173 (dev) |
+| `key-speed-server` (별도) | TTS 프록시 서버 | 3000 |
+
+TTS 서버는 한글 텍스트를 ElevenLabs API로 음성 합성하여 제공합니다. 프론트엔드에서 단어 완료 시 해당 단어의 발음을 재생합니다. **TTS 서버 없이도 타이핑 테스트는 정상 작동**하며, 소리만 나지 않습니다.
 
 ---
 
@@ -21,7 +34,7 @@
 
 ### 1. Apps In Toss 가이드라인 준수
 
-- **TDS 필수 사용**: 비게임 앱은 Toss Design System(`@toss/tds-mobile`) 컴포넌트를 반드시 사용해야 합니다
+- **게임 타입 앱**: `granite.config.ts`에서 `webViewProps.type: "game"`으로 설정되어 있습니다. 게임 타입은 TDS 사용이 필수가 아니지만, 이 프로젝트에서는 일부 TDS 컴포넌트(ProgressBar, TextField, Button, Paragraph)를 혼용합니다
 - **Granite 프레임워크**: `@apps-in-toss/web-framework` v1.x 이상 사용 (구 Bedrock)
 - **권한 관리**: `granite.config.ts`의 `permissions` 배열에서 필요한 권한 선언
 
@@ -44,26 +57,43 @@
 ## 📁 프로젝트 구조
 
 ```
-/
-├── src/
-│   ├── components/     # React 컴포넌트 (TDS 사용)
-│   ├── hooks/          # Custom React Hooks
-│   ├── utils/          # 유틸리티 함수
-│   ├── types/          # TypeScript 타입 정의
-│   ├── App.tsx         # 메인 앱 컴포넌트
-│   ├── main.tsx        # 진입점
-│   └── index.css       # 전역 스타일 (Tailwind)
-├── public/             # 정적 파일 (이미지, 폰트 등)
-├── tests/              # 테스트 파일 (*.test.tsx, *.test.ts)
-├── .github/workflows/  # GitHub Actions CI/CD
-├── granite.config.ts   # Apps In Toss 설정
-├── vite.config.ts      # Vite 설정
-├── vitest.config.ts    # Vitest 설정
-├── tsconfig.json       # TypeScript 설정
-├── tailwind.config.js  # Tailwind CSS 설정
-├── .prettierrc         # Prettier 설정
-├── .env.example        # 환경 변수 예시
-└── CLAUDE.md           # 이 파일
+key-speed/
+├── frontend/                    # 프론트엔드 워크스페이스
+│   ├── src/
+│   │   ├── components/          # React 컴포넌트
+│   │   │   ├── TypingTest.tsx   # 메인 게임 컴포넌트
+│   │   │   ├── TextDisplay.tsx  # 글자별 색상 표시
+│   │   │   ├── TimerDisplay.tsx # WPM + 티어 이모지
+│   │   │   ├── ResultPanel.tsx  # 결과 화면
+│   │   │   ├── ComboDisplay.tsx # 콤보 카운터
+│   │   │   ├── FloatingParticle.tsx # WPM 파티클 이펙트
+│   │   │   └── SoundToggle.tsx  # 사운드 on/off
+│   │   ├── hooks/               # Custom React Hooks
+│   │   │   ├── useTypingTest.ts # 타이핑 엔진 (IME 처리)
+│   │   │   ├── useTTSSoundEngine.ts # TTS 재생
+│   │   │   ├── useSoundEngine.ts    # AudioContext 관리
+│   │   │   ├── useComboTracker.ts   # 콤보 추적
+│   │   │   ├── useGameUser.ts       # Granite 사용자/기록
+│   │   │   ├── useExitConfirm.ts    # 뒤로가기 확인
+│   │   │   └── useSafeArea.ts       # 노치 안전 영역
+│   │   ├── services/            # TTS 캐싱 & API
+│   │   │   ├── ttsAudioCache.ts # 3단계 캐시 관리자
+│   │   │   ├── ttsIndexedDB.ts  # IndexedDB 래퍼
+│   │   │   ├── ttsApiClient.ts  # TTS 서버 HTTP 클라이언트
+│   │   │   └── ttsConfig.ts     # TTS 설정
+│   │   ├── styles/              # Emotion 스타일
+│   │   ├── utils/               # 유틸리티 (speedTier 등)
+│   │   ├── data/                # 샘플 텍스트
+│   │   ├── App.tsx              # 루트 컴포넌트
+│   │   └── main.tsx             # 진입점
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── vitest.config.ts
+│   └── .env.example
+├── granite.config.ts            # Apps In Toss 설정 (game type)
+├── package.json                 # 루트 워크스페이스
+├── CLAUDE.md                    # 이 파일
+└── ARCHITECTURE.md              # 전체 시스템 설계 문서
 ```
 
 ---
@@ -175,16 +205,33 @@ describe('Button', () => {
 
 ## 🔧 환경 변수
 
-`.env` 파일 사용 (`.env.example` 참고):
+`frontend/.env` 파일 사용 (`frontend/.env.example` 참고):
 
 ```bash
-VITE_API_BASE_URL=https://api.example.com
-VITE_APP_VERSION=1.0.0
+VITE_TTS_SERVER_URL=http://localhost:3000
 ```
+
+| 변수 | 필수 | 기본값 | 설명 |
+|------|------|--------|------|
+| `VITE_TTS_SERVER_URL` | 선택 | `http://localhost:3000` | TTS 프록시 서버 주소 |
 
 - **접두사 필수**: `VITE_`로 시작
 - **민감 정보**: `.gitignore`에 `.env` 추가됨
-- **타입 정의**: `src/vite-env.d.ts`에 선언
+- **타입 정의**: `frontend/src/vite-env.d.ts`에 선언
+
+### TTS 서버 연동
+
+프론트엔드는 `VITE_TTS_SERVER_URL`로 TTS 서버에 접근합니다. 개발 시 **TTS 서버를 별도 터미널에서 실행**해야 소리가 나옵니다:
+
+```bash
+# 터미널 1: TTS 서버 (key-speed-server/)
+cd ../key-speed-server && npm run dev    # localhost:3000
+
+# 터미널 2: 프론트엔드 (key-speed/)
+npm run dev                               # localhost:5173
+```
+
+TTS 서버 API: `GET /api/tts/:text` → `audio/mpeg` (한글 1~10자)
 
 ---
 
@@ -344,5 +391,5 @@ export function Component({ prop1, prop2 }: ComponentProps) {
 
 ---
 
-**마지막 업데이트**: 2026-02-16
-**버전**: 1.0.0
+**마지막 업데이트**: 2026-02-21
+**버전**: 1.1.0
