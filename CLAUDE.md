@@ -23,7 +23,7 @@
 
 | 저장소 | 역할 | 포트 |
 |--------|------|------|
-| `key-speed` (이 저장소) | 프론트엔드 미니앱 | 5173 (dev) |
+| `key-speed` (이 저장소) | 프론트엔드 미니앱 | 5959 (dev) |
 | `key-speed-server` (별도) | TTS 프록시 서버 | 3000 |
 
 TTS 서버는 한글 텍스트를 ElevenLabs API로 음성 합성하여 제공합니다. 프론트엔드에서 단어 완료 시 해당 단어의 발음을 재생합니다. **TTS 서버 없이도 타이핑 테스트는 정상 작동**하며, 소리만 나지 않습니다.
@@ -233,7 +233,7 @@ npm run dev                               # localhost:5173
 
 TTS 서버 API: `GET /api/tts/:text` → `audio/mpeg` (한글 1~10자)
 
-> **TTS 텍스트 가공 책임**: 프론트엔드의 `ttsApiClient.ts`는 단순 HTTP 클라이언트로, 텍스트 가공 없이 서버에 전달만 합니다. 음성 톤 조정을 위한 텍스트 가공(예: `!` 추가)은 TTS 서버(`key-speed-server`)의 책임입니다.
+> **TTS 음성 톤 설정**: 프론트엔드의 `ttsApiClient.ts`는 단순 HTTP 클라이언트로, 텍스트 가공 없이 서버에 전달만 합니다. 역동적인 음성 톤은 TTS 서버(`key-speed-server`)의 `elevenlabs.ts`에서 ElevenLabs `eleven_v3` 모델 + Audio Tags(`[excited]` 태그 삽입)로 제어합니다.
 
 ---
 
