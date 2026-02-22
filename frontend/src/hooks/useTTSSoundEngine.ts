@@ -72,37 +72,36 @@ export function useTTSSoundEngine() {
       const uniqueWords = [...new Set(words)];
       const cache = getCache();
 
+      const DEFAULT_TONE: ToneName = 'excited';
+      const PRIORITY_COUNT = 3;
+
+      const priority = uniqueWords.slice(0, PRIORITY_COUNT);
+      const rest = uniqueWords.slice(PRIORITY_COUNT);
+
+      // 1단계: 처음 3단어 우선 프리로드 (차단)
       setIsPreloading(true);
       setPreloadProgress({ loaded: 0, total: uniqueWords.length });
 
-      const POLL_INTERVAL = 100;
-      const pollId = setInterval(() => {
-        const progress = cache.getPreloadProgress();
-        setPreloadProgress(() => {
-          // total은 uncached 기준이므로, loaded가 진행되면 전체 대비 환산
-          const idbLoaded = uniqueWords.length - progress.total;
-          return {
-            loaded: idbLoaded + progress.loaded,
-            total: uniqueWords.length,
-          };
-        });
-      }, POLL_INTERVAL);
-
-      const DEFAULT_TONE: ToneName = 'excited';
-      const wordsWithTone = uniqueWords.map(w => ({
+      const priorityWithTone = priority.map(w => ({
         word: w,
         tone: DEFAULT_TONE,
       }));
 
       try {
-        await cache.preloadChars(wordsWithTone);
+        await cache.preloadChars(priorityWithTone);
       } finally {
-        clearInterval(pollId);
+        // 1단계 완료 → 입력 즉시 허용
         setPreloadProgress({
-          loaded: uniqueWords.length,
+          loaded: priority.length,
           total: uniqueWords.length,
         });
         setIsPreloading(false);
+      }
+
+      // 2단계: 나머지 백그라운드 프리로드 (비차단)
+      if (rest.length > 0) {
+        const restWithTone = rest.map(w => ({ word: w, tone: DEFAULT_TONE }));
+        cache.preloadChars(restWithTone).catch(() => {});
       }
     },
     [getCache]
